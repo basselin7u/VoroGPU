@@ -1,0 +1,6 @@
+#Specify intentionally untracked files to ignore
+CPU/*
+ComparisonBenchmarks/*
+build/*
+predicate_generator/*
+stopwatch.h
