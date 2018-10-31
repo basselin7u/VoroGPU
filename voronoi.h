@@ -26,7 +26,7 @@ struct ConvexCell {
     __host__ __device__ ConvexCell(int p_seed, float* p_pts, Status* p_status);
 	__host__ __device__ bool is_security_radius_reached(float4 last_neig);
     __host__ __device__ void clip_by_plane(int vid);
-	__device__ __host__ void clip_tet_from_points(float4 A, float4 B, float4 C, float4 D);
+    __host__ __device__ void clip_tet_from_points(float4 A, float4 B, float4 C, float4 D);
     __host__ __device__ float4 compute_triangle_point(uchar3 t, bool persp_divide=true) const;
     __host__ __device__ inline  uchar& ith_plane(uchar t, int i);
     __host__ __device__ int new_point(int vid);

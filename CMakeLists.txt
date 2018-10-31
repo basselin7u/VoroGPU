@@ -19,6 +19,6 @@ set(CPU_SOURCES
 cuda_add_executable(
         test_voronoi voronoi.cu knearests.cu test_voronoi.cu
 	${CPU_SOURCES}
-        OPTIONS "-arch sm_60 -lineinfo"
+        OPTIONS "-arch sm_30 -lineinfo"
 )
 

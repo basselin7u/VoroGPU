@@ -5,10 +5,14 @@
 #include <sstream>
 #include <cassert>
 
+#include<cstdlib>
+
+
 #include "params.h"
 #include "voronoi.h"
 #include "stopwatch.h"
 #include "CPU/voronoi_fallback.h"
+
 
 void get_bbox(const std::vector<float>& xyz, float& xmin, float& ymin, float& zmin, float& xmax, float& ymax, float& zmax) {
     int nb_v = xyz.size()/3;
@@ -211,6 +215,7 @@ int main(int argc, char** argv) {
 	}
 	
     cudaFree(initptr);
+    system("pythonw ../go.py");
     return 0;
 }
 

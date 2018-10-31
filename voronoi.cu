@@ -471,8 +471,8 @@ __host__ void get_voro_diagram(ConvexCell& cc, float* out_pts, int seed, std::ve
 
 	FOR(i, cc.nb_t) {
 		float4 voro_vertex = cc.compute_triangle_point(tr(i));
-		voro_points.push_back(make_float3(voro_vertex.x, voro_vertex.y, voro_vertex.z));
-		//voro_points.push_back(make_float3(voro_vertex.x*0.9+ out_pts[3*seed]*0.1, voro_vertex.y*0.9 + out_pts[3 * seed +1] *0.1, voro_vertex.z*0.9 + out_pts[3 * seed + 2] *0.1));
+        float c = .95;
+        voro_points.push_back(make_float3(c*voro_vertex.x+(1.-c)*cc.voro_seed.x, c*voro_vertex.y + (1. - c)*cc.voro_seed.y, c*voro_vertex.z + (1. - c)*cc.voro_seed.z));
 	}
 
 	std::vector<int> clipping_plane(cc.nb_v + 1, 0);
@@ -578,11 +578,10 @@ __host__  void compute_voro_cell_CPU(
 	ConvexCell cc(seed, pts, &(gpu_stat[seed]));
 	
 	IF_CPU(gs.start_cell());
-	float4 P0 = make_float4(tet_pts[4 * tet_indices[tet * 4]], tet_pts[4 * tet_indices[tet * 4] + 1], tet_pts[4 * tet_indices[tet * 4] + 2], tet_pts[4 * tet_indices[tet * 4] + 4]);
-	float4 P1 = make_float4(tet_pts[4 * tet_indices[tet * 4 + 1]], tet_pts[4 * tet_indices[tet * 4 + 1] + 1], tet_pts[4 * tet_indices[tet * 4 + 1] + 2], tet_pts[4 * tet_indices[tet * 4 + 1] + 4]);
-	float4 P2 = make_float4(tet_pts[4 * tet_indices[tet * 4 + 2]], tet_pts[4 * tet_indices[tet * 4 + 2] + 1], tet_pts[4 * tet_indices[tet * 4 + 2] + 2], tet_pts[4 * tet_indices[tet * 4 + 2] + 4]);
-	float4 P3 = make_float4(tet_pts[4 * tet_indices[tet * 4 + 3]], tet_pts[4 * tet_indices[tet * 4 + 3] + 1], tet_pts[4 * tet_indices[tet * 4 + 3] + 2], tet_pts[4 * tet_indices[tet * 4 + 3] + 4]);
-	cc.clip_tet_from_points(P0, P1, P2, P3);
+    float4 P[4];
+    FOR(i,4) P[i] = point_from_ptr3(&(tet_pts[4 * tet_indices[tet * 4+i]]));
+	cc.clip_tet_from_points(P[0], P[1], P[2], P[3]);
+   // *(cc.status) = success;
 
 	FOR(v, _K_) {
 		unsigned int z = neigs[_K_ * seed + v];
@@ -620,11 +619,9 @@ __host__ __device__ void compute_voro_cell(
     ConvexCell cc(seed, pts, &(gpu_stat[seed]));
 
 	//clip by tet
-	float4 P0 = make_float4(tet_pts[4 * tet_indices[tet * 4]], tet_pts[4 * tet_indices[tet * 4] + 1], tet_pts[4 * tet_indices[tet * 4] + 2], tet_pts[4 * tet_indices[tet * 4] + 4]);
-	float4 P1 = make_float4(tet_pts[4 * tet_indices[tet * 4 + 1]], tet_pts[4 * tet_indices[tet * 4 + 1] + 1], tet_pts[4 * tet_indices[tet * 4 + 1] + 2], tet_pts[4 * tet_indices[tet * 4 + 1] + 4]);
-	float4 P2 = make_float4(tet_pts[4 * tet_indices[tet * 4 + 2]], tet_pts[4 * tet_indices[tet * 4 + 2] + 1], tet_pts[4 * tet_indices[tet * 4 + 2] + 2], tet_pts[4 * tet_indices[tet * 4 + 2] + 4]);
-	float4 P3 = make_float4(tet_pts[4 * tet_indices[tet * 4 + 3]], tet_pts[4 * tet_indices[tet * 4 + 3] + 1], tet_pts[4 * tet_indices[tet * 4 + 3] + 2], tet_pts[4 * tet_indices[tet * 4 + 3] + 4]);
-	cc.clip_tet_from_points(P0, P1, P2, P3);
+    float4 P[4];
+    FOR(i, 4) P[i] = point_from_ptr3(&(tet_pts[4 * tet_indices[tet * 4 + i]]));
+    cc.clip_tet_from_points(P[0], P[1], P[2], P[3]);
 
     FOR(v, _K_) {
 		unsigned int z = neigs[_K_ * seed + v];
@@ -734,31 +731,7 @@ void compute_voro_diagram_GPU(
         float milliseconds = 0;
         cudaEventElapsedTime(&milliseconds, start, stop);
         IF_VERBOSE(std::cerr << "kn voro: " << milliseconds << " msec" << std::endl);
-		/*
-//  }
 
-//  // Lloyd
-//  FOR(lit,nb_Lloyd_iter){
-//      IF_VERBOSE(Stopwatch W("Loyd iterations"));
-//      cudaEvent_t start, stop;
-//      cudaEventCreate(&start);
-//      cudaEventCreate(&stop);
-//      cudaEventRecord(start);
-
-//      voro_cell_test_GPU_param << < nbpts / VORO_BLOCK_SIZE + 1, VORO_BLOCK_SIZE >> > ((float*)kn->d_stored_points, nbpts, kn->d_knearests, gpu_stat.gpu_data, out_pts_w.gpu_data);
-//      cuda_check_error();
-
-//      voro_cell_test_GPU_param << < nbpts / VORO_BLOCK_SIZE + 1, VORO_BLOCK_SIZE >> > (out_pts_w.gpu_data, nbpts, kn->d_knearests, gpu_stat.gpu_data, (float*)kn->d_stored_points);
-//      cuda_check_error();
-
-
-//      cudaEventRecord(stop);
-//      cudaEventSynchronize(stop);
-//      float milliseconds = 0;
-//      cudaEventElapsedTime(&milliseconds, start, stop);
-//      IF_VERBOSE(std::cerr << "kn voro: " << milliseconds << " msec" << std::endl);
-//  }
-*/
 
 		
     {
@@ -812,11 +785,7 @@ void compute_voro_diagram_CPU(
 	}
 	std::fstream output_file;
 	output_file.open("voro_tet.obj", std::ios_base::out);
-	output_file << "# voro_cell.obj" << std::endl;
-	output_file << "#" << std::endl;
-	output_file << std::endl;
-	output_file << "o voro_cell" << std::endl;
-	output_file << std::endl;
+
 	FOR(i, voro_points.size()) {
 		output_file << "v " << voro_points[i].x << " " << voro_points[i].y << " " << voro_points[i].z << std::endl;
 	}
@@ -824,15 +793,7 @@ void compute_voro_diagram_CPU(
 	output_file << voro_faces << std::endl;
 	output_file.close();
 	
-	static int callid = 0;
-	/*
-	//FOR(i, nb_Lloyd_iter) {
-	//	gs.reset();
-	//	FOR(seed, nbpts)  compute_voro_cell(nvpts, nbpts, knn, stat.data(), bary.data(), seed);
-	//	FOR(i, pts.size()) pts[i] = bary[i];
-	//}
-	*/
-	callid++;
+
 
 	if (KNN != NULL) {
 		FOR(i, _K_ * kn->allocated_points) {
